@@ -1,0 +1,19 @@
+objective_params:
+  feature_fraction:
+    max: 0.75
+    min: 0.1
+  learning_rate:
+    log: true
+    max: 0.1
+    min: 0.0001
+  max_depth:
+    max: 8
+    min: 3
+  num_leaves:
+    max: 25
+    min: 5
+  num_trees:
+    log: true
+    max: 1000
+    min: 100
+objective_values: mean
