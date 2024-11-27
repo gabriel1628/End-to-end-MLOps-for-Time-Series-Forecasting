@@ -1,6 +1,6 @@
 import pandas as pd
 
-def train_test_split(df, unique_id="unique_id", test_window=24*60):
+def train_test_split(df, unique_id="prediction_unit_id", test_window=24*60):
     """
     Parameters
     ------
