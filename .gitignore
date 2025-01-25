@@ -170,7 +170,7 @@ data/
 models/
 
 # Optuna studies
-optuna_studies
+#optuna_studies
 
 # Logs
 checkpoints/
