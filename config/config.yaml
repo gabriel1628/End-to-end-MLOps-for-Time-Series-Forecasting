@@ -1,0 +1,12 @@
+model_name: lightgbm
+preprocessing_version: 2
+hpo_config_version: 1
+forecast_horizon: 48
+random_state: 0
+n_trials: 100
+s3_bucket: enefit-competition
+s3_dirs:
+  - data/
+local_dirs:
+  - ./data/
+# aws_access_key_id='%env:AWS_ACCESS_KEY_ID%'
