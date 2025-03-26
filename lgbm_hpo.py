@@ -7,17 +7,17 @@ import logging
 import boto3
 import GPUtil
 import pandas as pd
-import numpy as np
 from pathlib import Path
-from natsorted import natsorted
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import mean_absolute_error
 import optuna
 from lightgbm import LGBMRegressor
-from utils import train_test_split, load_config, download_s3_dir
-from preprocessing.preprocessing import *
+from utils import load_config, download_s3_dir
 import yaml
 from dotenv import dotenv_values
+import warnings
+import os
+import pickle
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -30,15 +30,15 @@ def setup_logging():
     logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
-def objective(trial, X_train, y_train, X_test, y_test, config, random_state, device):
+def objective(trial, X_train, y_train, hpo_config, random_state, device):
     study_params = {
         "verbosity": -1,
         "random_state": random_state,
         "device": device,
     }
-    for int_param in config["int_params"]:
+    for int_param in hpo_config["int_params"]:
         study_params[int_param["name"]] = trial.suggest_int(**int_param)
-    for float_param in config["float_params"]:
+    for float_param in hpo_config["float_params"]:
         study_params[float_param["name"]] = trial.suggest_float(**float_param)
 
     tscv = TimeSeriesSplit(n_splits=5)
@@ -52,34 +52,18 @@ def objective(trial, X_train, y_train, X_test, y_test, config, random_state, dev
         trial.set_user_attr(f"error_split_{i+1}", cv_errors[i])
     trial.set_user_attr("cv_errors_std", cv_errors.std())
 
-    model.fit(X_train, y_train)
-    y_fit = model.predict(X_train)
-    train_mae = mean_absolute_error(y_train, y_fit)
-    trial.set_user_attr("train_mae", train_mae)
-
-    y_pred = model.predict(X_test)
-    test_mae = mean_absolute_error(y_test, y_pred)
-    trial.set_user_attr("test_mae", test_mae)
-
     return cv_errors.mean()
 
 
-env_vars = dotenv_values(".env")
-config = load_config("./config/config.yaml")
-
-
 def main():
+    env_vars = dotenv_values(".env")
+    config = load_config("./config/config.yaml")
+
     parser = argparse.ArgumentParser(
         description="Time Series Forecasting with Hyperparameter Optimization"
     )
     parser.add_argument(
         "--model_name", type=str, default=config["model_name"], help="Model name"
-    )
-    parser.add_argument(
-        "--preprocessing_version",
-        type=int,
-        default=config["preprocessing_version"],
-        help="Preprocessing version",
     )
     parser.add_argument(
         "--hpo_config_version",
@@ -128,44 +112,44 @@ def main():
     device = "gpu" if GPUtil.getAvailable() else "cpu"
     print(f"device set to {device}")
 
-    if s3_bucket:
-        s3 = boto3.client(
+    if args.s3_bucket:
+        s3_client = boto3.client(
             "s3",
             aws_access_key_id=env_vars["AWS_ACCESS_KEY_ID"],
             aws_secret_access_key=env_vars["AWS_SECRET_ACCESS_KEY"],
         )
 
         for s3_dir, local_dir in zip(args.s3_dirs, args.local_dirs):
-            download_s3_dir(args.s3_bucket, s3_dir, local_dir)
+            download_s3_dir(s3_client, args.s3_bucket, s3_dir, local_dir)
 
-    df = pd.read_csv("./data/consumption.csv")
-    df["datetime"] = pd.to_datetime(df["datetime"])
-    df_train, df_test = train_test_split(df)
-
-    assert df.shape[0] == df_train.shape[0] + df_test.shape[0]
-    assert df.shape[1] == df_train.shape[1] == df_test.shape[1]
-
-    preprocessing = vars()[f"preprocessing_{args.preprocessing_version}"]
-    X_train, y_train = preprocessing(df_train)
-    X_test, y_test = preprocessing(df_test)
+    df_train = pd.read_csv("./data/processed/consumption_train_processed.csv")
+    X_train = df_train.drop(columns="target")
+    y_train = df_train["target"]
     print(f"X_train shape : {X_train.shape}")
     print(f"y_train shape : {y_train.shape}")
-    print(f"X_test shape : {X_test.shape}")
-    print(f"y_test shape : {y_test.shape}")
 
-    config_files_path = Path(
-        "./config", args.model_name, f"config_{args.hpo_config_version}.yaml"
+    config_file_path = Path(
+        "./config", f"{args.model_name}_hpo", f"config_{args.hpo_config_version}.yaml"
     )
-    print(f"using {config_files_path} for HPO")
-    with open(config_files_path, "rb") as file:
-        config = yaml.safe_load(file)
+    print(f"using {config_file_path} for HPO")
+    with open(config_file_path, "rb") as file:
+        hpo_config = yaml.safe_load(file)
 
-    study_name = f"{args.model_name}_preprocessing{args.preprocessing_version}_config{hpo_config_version}"
+    study_name = f"datav1_{config['model_name']}_config{config['hpo_config_version']}"
     study_path = f"./optuna_studies/{study_name}.db"
     storage_path = "sqlite:///{}".format(study_path)
     print(f"Study path : {study_path}")
 
-    sampler = optuna.samplers.TPESampler(seed=args.random_state)
+    sampler_name = f"{study_name}_sampler.pkl"
+    if sampler_name in os.listdir("./optuna_studies"):
+        sampler_loaded = True
+        print("loading sampler...")
+        sampler = pickle.load(open(f"./optuna_studies/{sampler_name}", "rb"))
+        print("sampler loaded.")
+    else:
+        sampler_loaded = False
+        print("no sampler saved for the study, creating a new one")
+        sampler = optuna.samplers.TPESampler(seed=args.random_state)
 
     study = optuna.create_study(
         study_name=study_name,
@@ -174,43 +158,23 @@ def main():
         directions=["minimize"],
         sampler=sampler,
     )
+    if not sampler_loaded:
+        print("saving sampler")
+        with open(f"./optuna_studies/{study_name}_sampler.pkl", "wb") as file:
+            pickle.dump(study.sampler, file)
 
-    checkpoint = time.time()
-    for i in range(args.n_trials):
-        study.optimize(
-            lambda trial: objective(
-                trial,
-                X_train,
-                y_train,
-                X_test,
-                y_test,
-                config,
-                args.random_state,
-                device,
-            ),
-            n_trials=1,
-        )
-        if s3_bucket:
-            # upload trials to S3 at least every 5 minutes
-            if time.time() - checkpoint > 300:
-                checkpoint = time.time()
-                print("Uploading the trials database to S3...")
-                s3.upload_file(
-                    study_path,
-                    args.s3_bucket,
-                    str(study_path),
-                )
-
-    if s3_bucket:
-        print("End of HPO: uploading the trials database to S3...")
-        s3.upload_file(
-            study_path,
-            args.s3_bucket,
-            str(study_path),
-        )
-        print("trials databse successfully uploaded")
-    else:
-        print("End of HPO.")
+    study.optimize(
+        lambda trial: objective(
+            trial,
+            X_train,
+            y_train,
+            hpo_config,
+            args.random_state,
+            device,
+        ),
+        n_trials=config["n_trials"],
+    )
+    print("End of HPO.")
 
 
 if __name__ == "__main__":
