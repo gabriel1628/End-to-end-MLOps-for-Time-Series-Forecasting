@@ -22,12 +22,12 @@ def load_config(config_path):
     return config
 
 
-def download_s3_dir(bucket_name, s3_dir, local_dir):
+def download_s3_dir(s3_client, bucket_name, s3_dir, local_dir):
     """function to download objects from an S3 bucket located in the s3_dir directory"""
     if not os.path.exists(local_dir):
         os.makedirs(local_dir)
 
-    paginator = s3.get_paginator("list_objects_v2")
+    paginator = s3_client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket_name, Prefix=s3_dir)
 
     for page in pages:
@@ -44,4 +44,4 @@ def download_s3_dir(bucket_name, s3_dir, local_dir):
                 print(
                     f"Downloading s3://{bucket_name}/{s3_key} to {local_file_path}..."
                 )
-                s3.download_file(bucket_name, s3_key, local_file_path)
+                s3_client.download_file(bucket_name, s3_key, local_file_path)
