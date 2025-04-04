@@ -1,14 +1,16 @@
 # preprocessing
 forecast_horizon: 48
-n_lags: 24
+n_lags: &n_lags 24
 rolling_mean_window_size: 24
+date_features: ["month", "dayofweek", "hour"]
+n_lag_transforms: *n_lags
 # HPO
 model_name: lightgbm
 hpo_config_version: 1
 random_state: 0
 n_splits: 5 # number of CV splits
 scoring: neg_mean_absolute_error # scoring for CV
-n_trials: 100
+n_trials: 5
 # sync with S3
 s3_bucket: # enefit-competition
 s3_dirs:
