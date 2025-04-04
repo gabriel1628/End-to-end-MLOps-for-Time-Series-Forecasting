@@ -1,4 +1,4 @@
-# End-to-End MLOps for Time Series
+# End-to-End MLOps for Time Series Forecasting
 
 This repository provides a comprehensive framework for managing the entire Machine Learning lifecycle, specifically tailored for Time Series data. By adhering to MLOps best practices, this project streamlines workflows from data ingestion and preprocessing to hyperparameter optimization, model training, and deployment.
 
@@ -14,13 +14,12 @@ While the primary focus is on Time Series data, the scripts and methodologies in
 
 The project leverages the following technologies:
 
-- **Python 3.10**: The core programming language used throughout the project.
-- **Pandas**: For efficient data manipulation and preprocessing.
+- **Python 3.10.11+**: The core programming language used throughout the project.
+- **Pandas**: For data manipulation and preprocessing.
 - **AWS**: Cloud provider for scalable infrastructure and deployment.
 - **Scikit-Learn API**: Provides a consistent interface for Machine Learning estimators.
 - **Optuna**: For advanced Hyperparameter Optimization (HPO).
-- **MLflow**: For tracking experiments, models, and data versions.
-- **Flask**: A lightweight web framework for deploying the trained models.
+- **MLflow**: For tracking experiments, models, and for model deployment.
 
 ## Project Highlights
 
@@ -57,18 +56,25 @@ The project leverages the following technologies:
    cd <repository-folder>
    ```
 
-2. **Install Dependencies** Ensure you have Python 3.10 installed, then run:
+2. **Install Dependencies**
+
+   Ensure you have Python 3.10 installed, then run:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configure AWS**
+5. **Configure AWS**
+
    Set up your AWS credentials to use cloud services for storage or deployment.
 
-4. **Run the Pipeline**
+7. **Run the Pipeline**
+
+   TODO
+   <!--
    Execute the script `main.py` script to run the pipeline
    
    ```
    python main.py
+   -->
    ```
