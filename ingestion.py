@@ -1,4 +1,5 @@
 import os
+import subprocess
 import shutil
 from glob import glob
 from zipfile import ZipFile
@@ -24,14 +25,31 @@ def ingestion_pipeline():
     Pipeline to download, unzip, organize, and prepare data for further processing.
     """
     print("Downloading the data...")
-    os.system("kaggle competitions download -c predict-energy-behavior-of-prosumers")
-    print("Data downloaded successfully.")
+    try:
+        subprocess.run(
+            [
+                "kaggle",
+                "competitions",
+                "download",
+                "-c",
+                "predict-energy-behavior-of-prosumers",
+            ],
+            check=True,
+        )
+        print("Data downloaded successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error downloading data: {e}")
+        return
 
     print("Unzipping the data...")
-    with ZipFile("./predict-energy-behavior-of-prosumers.zip", "r") as zObject:
-        zObject.extractall(path="./predict-energy-behavior-of-prosumers")
-    os.remove("predict-energy-behavior-of-prosumers.zip")
-    print("Data unzipped successfully. The zip file has been deleted.")
+    try:
+        with ZipFile("./predict-energy-behavior-of-prosumers.zip", "r") as zObject:
+            zObject.extractall(path="./predict-energy-behavior-of-prosumers")
+        os.remove("predict-energy-behavior-of-prosumers.zip")
+        print("Data unzipped successfully. The zip file has been deleted.")
+    except Exception as e:
+        print(f"Error unzipping data: {e}")
+        return
 
     print("Creating the directories for the data...")
     create_dir("./data")
@@ -42,7 +60,6 @@ def ingestion_pipeline():
     destination = "./data/raw"
     files = glob(os.path.join(source, "*.csv"), recursive=True)
     files.append("./predict-energy-behavior-of-prosumers/county_id_to_name_map.json")
-    # Iterate on all files to move them to the destination folder
     for file_path in files:
         dst_path = os.path.join(destination, os.path.basename(file_path))
         shutil.move(file_path, dst_path)
@@ -62,4 +79,6 @@ if __name__ == "__main__":
             ingestion_pipeline()
     except Exception as e:
         print(f"An error occurred: {e}")
+        print("Running the ingestion pipeline...")
         ingestion_pipeline()
+        print("Ingestion pipeline completed.")
