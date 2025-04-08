@@ -22,6 +22,21 @@ def load_config(config_path):
     return config
 
 
+def create_dir(dir_path):
+    """
+    Creates a directory if it doesn't already exist.
+    """
+    try:
+        os.mkdir(dir_path)
+        print(f"Directory '{dir_path}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{dir_path}' already exists.")
+    except PermissionError:
+        print(f"Permission denied: Unable to create '{dir_path}'.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
 def download_s3_dir(s3_client, bucket_name, s3_dir, local_dir):
     """function to download objects from an S3 bucket located in the s3_dir directory"""
     if not os.path.exists(local_dir):
