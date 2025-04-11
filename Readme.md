@@ -14,7 +14,7 @@ While the primary focus is on Time Series data, the scripts and methodologies in
 
 The project leverages the following technologies:
 
-- **Python 3.10.11+**: The core programming language used throughout the project.
+- **Python 3.10+**: The core programming language used throughout the project.
 - **Pandas**: For data manipulation and preprocessing.
 - **AWS**: Cloud provider for scalable infrastructure and deployment.
 - **Scikit-Learn API**: Provides a consistent interface for Machine Learning estimators.
@@ -30,6 +30,10 @@ The project leverages the following technologies:
 2. **Data Preprocessing**
 
    - Tools to clean, transform, and prepare data for Time Series analysis.
+  
+3. **Feature Engineering**
+
+   - Create and select relevant features for model training.
 
 3. **Hyperparameter Optimization**
 
@@ -63,6 +67,19 @@ The project leverages the following technologies:
    ```bash
    pip install -r requirements.txt
    ```
+
+3. **Configure the Kaggle API**
+
+   The `kaggle` package will be needed to download the data. It should have been installed with the requirements.
+   Before accessing the Kaggle API, you need to authenticate using an API token. To do this:
+   
+      - Go to the 'Account' tab on your Kaggle profile.
+      - Click 'Create New Token'. This will download a file named `kaggle.json` containing your API credentials.
+      - Move this file to the appropriate location:
+         - Linux/OSX: `~/.kaggle/kaggle.json`
+         - Windows: `C:\Users\<Windows-username>\.kaggle\kaggle.json`
+       
+   Make sure the permissions are set correctly to keep the file secure.
 
 5. **Configure AWS**
 
