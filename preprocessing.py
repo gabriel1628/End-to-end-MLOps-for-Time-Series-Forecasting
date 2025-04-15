@@ -8,6 +8,25 @@ from utils import load_config, create_dir
 
 def preprocessing_pipeline():
     config = load_config("./config/development/pipeline.yaml")
+    parser = argparse.ArgumentParser(
+        description="Preprocessing pipeline for the energy consumption dataset."
+    )
+    parser.add_argument(
+        "--splitting_datetime",
+        type=str,
+        default=config["splitting_datetime"],
+        help="Datetime to split the data into train and test sets.",
+    )
+    parser.add_argument(
+        "--s3_bucket",
+        type=str,
+        default=config["s3_bucket"],
+        help="S3 bucket name to upload the preprocessed data.",
+    )
+    args = parser.parse_args()
+    splitting_datetime = args.splitting_datetime
+    s3_bucket = args.s3_bucket
+
     print("Preprocessing the data...")
     # Read data
     if not os.path.exists("./data/raw/train.csv"):
@@ -54,7 +73,6 @@ def preprocessing_pipeline():
 
     # Train-test split
     data = data.sort_values(by="datetime")
-    splitting_datetime = "2023-01-26 05:00:00"
     train = data[data["datetime"] <= splitting_datetime]
     test = data[data["datetime"] > splitting_datetime]
 
@@ -63,16 +81,12 @@ def preprocessing_pipeline():
     test.to_csv("./data/preprocessed/test.csv", index=False)
 
     # Optional: Upload data to AWS S3
-    if config["s3_bucket"]:
+    if s3_bucket:
         s3_client = boto3.client("s3")
         with open("./data/preprocessed/train.csv", "rb") as file:
-            s3_client.upload_fileobj(
-                file, config["s3_bucket"], "data/preprocessed/train.csv"
-            )
+            s3_client.upload_fileobj(file, s3_bucket, "data/preprocessed/train.csv")
         with open("./data/preprocessed/test.csv", "rb") as file:
-            s3_client.upload_fileobj(
-                file, config["s3_bucket"], "data/preprocessed/test.csv"
-            )
+            s3_client.upload_fileobj(file, s3_bucket, "data/preprocessed/test.csv")
 
     print("Preprocessing pipeline completed.")
 

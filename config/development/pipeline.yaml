@@ -1,4 +1,6 @@
 # preprocessing
+splitting_datetime: 2023-01-26 05:00:00
+# feature engineering
 forecast_horizon: 48
 n_lags: &n_lags 4
 rolling_mean_window_size: 4
