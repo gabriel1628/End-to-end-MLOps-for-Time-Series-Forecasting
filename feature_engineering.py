@@ -68,7 +68,9 @@ def main():
     ]
     for file in files:
         df = pd.read_csv(Path(preprocessed_path, file), parse_dates=["datetime"])
+        df.drop(columns=["data_block_id", "row_id"], inplace=True)
         on_test = True if file.split(".")[0].split("_")[1] == "test" else False
+        print(f"Processing {Path(preprocessed_path, file)}...")
         df_transformed = feature_engineering(
             df=df,
             freq=config["freq"],
@@ -83,6 +85,7 @@ def main():
             static_features=config["static_features"],
             on_test=on_test,
         )
+        df_transformed.drop(columns=["datetime"], inplace=True)
         df_transformed.to_csv(Path(processed_path, file), index=False)
         print(f"{file} processed and saved to {processed_path}")
 
