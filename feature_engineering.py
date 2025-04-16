@@ -7,28 +7,12 @@ import os
 import sys
 import argparse
 import yaml
+from pathlib import Path
 
 # Default config path
 default_config_path = "./config/development/pipeline.yaml"
-preprocessed_train_path = "./data/preprocessed/consumption_train.csv"
-preprocessed_test_path = "./data/preprocessed/consumption_test.csv"
-
-
-def parse_args(config):
-    parser = argparse.ArgumentParser(description="Feature Engineering Pipeline")
-    parser.add_argument(
-        "--forecast_horizon", type=int, default=config.get("forecast_horizon", 48)
-    )
-    parser.add_argument("--n_lags", type=int, default=config.get("n_lags", 24))
-    parser.add_argument(
-        "--rolling_mean_window_size",
-        type=int,
-        default=config.get("rolling_mean_window_size", 12),
-    )
-    parser.add_argument(
-        "--date_features", nargs="+", default=config.get("date_features", [])
-    )
-    return parser.parse_args()
+preprocessed_path = "./data/preprocessed/"
+processed_path = "./data/processed/"
 
 
 def feature_engineering(
@@ -56,10 +40,6 @@ def feature_engineering(
         lags=lags,
         lag_transforms=lag_transforms,
         date_features=date_features,
-        id_col=id_col,
-        time_col=time_col,
-        target_col=target_col,
-        static_features=static_features,
     )
     df_transformed = fcst.preprocess(
         df,
@@ -74,16 +54,40 @@ def feature_engineering(
 
 def main():
     # Read data
-    if not os.path.exists(preprocessed_data_path):
+    if not os.path.exists(preprocessed_path):
         print("Data not found. Please run the preprocessing script first.")
         print("Exiting...")
         sys.exit(1)
-    df = pd.read_csv(preprocessed_data_path, parse_dates=time_col)
 
     config = load_config(default_config_path)
 
-    args = parse_args(config)
-    _ = feature_engineering()
+    files = [
+        "consumption_train.csv",
+        "consumption_test.csv",
+        "production_train.csv",
+        "production_test.csv",
+    ]
+    for file in files:
+        df = pd.read_csv(Path(preprocessed_path, file), parse_dates=["datetime"])
+        on_test = True if file.split(".")[0].split("_")[1] == "test" else False
+        df_transformed = feature_engineering(
+            df=df,
+            freq=config["freq"],
+            id_col=config["id_col"],
+            time_col=config["time_col"],
+            target_col=config["target_col"],
+            forecast_horizon=config["forecast_horizon"],
+            n_lags=config["n_lags"],
+            rolling_mean_window_size=config["rolling_mean_window_size"],
+            n_lag_transforms=config["n_lag_transforms"],
+            date_features=config["date_features"],
+            static_features=config["static_features"],
+            on_test=on_test,
+        )
+        df_transformed.to_csv(Path(processed_path, file), index=False)
+        print(f"Transformed {file} saved to {processed_path}")
+
+    print("Feature engineering pipeline completed.")
 
 
 if __name__ == "__main__":
