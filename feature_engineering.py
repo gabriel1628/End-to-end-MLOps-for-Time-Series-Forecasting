@@ -48,7 +48,6 @@ def feature_engineering(
         target_col=target_col,
         static_features=static_features,
     )
-    print("Feature engineering completed. Output shape:", df_transformed.shape)
     return df_transformed
 
 
@@ -85,7 +84,7 @@ def main():
             on_test=on_test,
         )
         df_transformed.to_csv(Path(processed_path, file), index=False)
-        print(f"Transformed {file} saved to {processed_path}")
+        print(f"{file} processed and saved to {processed_path}")
 
     print("Feature engineering pipeline completed.")
 
