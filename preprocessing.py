@@ -31,7 +31,7 @@ def preprocessing_pipeline():
     print("Preprocessing the data...")
     # Read data
     if not os.path.exists("./data/raw/train.csv"):
-        print("Data not found. Please the ingestion script first.")
+        print("Data not found. Please run the ingestion script first.")
         print("Exiting...")
         sys.exit(1)
     data = pd.read_csv("./data/raw/train.csv")
@@ -53,16 +53,6 @@ def preprocessing_pipeline():
     consumption.ffill(inplace=True)
     production.ffill(inplace=True)
 
-    # Merge filled values back into the main dataset
-    nan_consumption_indices = consumption[consumption["target"].isna()].index
-    nan_production_indices = production[production["target"].isna()].index
-    data.loc[nan_consumption_indices, "target"] = consumption.loc[
-        nan_consumption_indices, "target"
-    ]
-    data.loc[nan_production_indices, "target"] = production.loc[
-        nan_production_indices, "target"
-    ]
-
     # # Downcast data types
     # int_columns = list(data.dtypes[data.dtypes == np.int64].index)
     # float_columns = list(data.dtypes[data.dtypes == np.float64].index)
@@ -73,21 +63,36 @@ def preprocessing_pipeline():
     #     data[col] = pd.to_numeric(data[col], downcast="float")
 
     # Train-test split
-    data = data.sort_values(by="datetime")
-    train = data[data["datetime"] <= splitting_datetime]
-    test = data[data["datetime"] > splitting_datetime]
+    consumption = consumption.sort_values(by="datetime")
+    consumption_train = consumption[consumption["datetime"] <= splitting_datetime]
+    consumption_test = consumption[consumption["datetime"] > splitting_datetime]
+
+    production = production.sort_values(by="datetime")
+    production_train = production[production["datetime"] <= splitting_datetime]
+    production_test = production[production["datetime"] > splitting_datetime]
 
     # Save cleaned data
-    train.to_csv("./data/preprocessed/train.csv", index=False)
-    test.to_csv("./data/preprocessed/test.csv", index=False)
+    consumption_train.to_csv("./data/preprocessed/consumption_train.csv", index=False)
+    consumption_test.to_csv("./data/preprocessed/consumption_test.csv", index=False)
+
+    production_train.to_csv("./data/preprocessed/production_train.csv", index=False)
+    production_test.to_csv("./data/preprocessed/production_test.csv", index=False)
 
     # Optional: Upload data to AWS S3
     if s3_bucket:
         s3_client = boto3.client("s3")
-        with open("./data/preprocessed/train.csv", "rb") as file:
-            s3_client.upload_fileobj(file, s3_bucket, "data/preprocessed/train.csv")
-        with open("./data/preprocessed/test.csv", "rb") as file:
-            s3_client.upload_fileobj(file, s3_bucket, "data/preprocessed/test.csv")
+        files = [
+            "consumption_train.csv",
+            "consumption_test.csv",
+            "production_train.csv",
+            "production_test.csv",
+        ]
+        for file in files:
+            local_path = f"./data/preprocessed/{file}"
+            s3_key = f"data/preprocessed/{file}"
+            with open(local_path, "rb") as f:
+                s3_client.upload_fileobj(f, s3_bucket, s3_key)
+            print(f"Uploaded {local_path} to s3://{s3_bucket}/{s3_key}")
 
     print("Preprocessing pipeline completed.")
 
