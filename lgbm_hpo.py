@@ -57,79 +57,38 @@ def objective(trial, X_train, y_train, hpo_config, random_state, device):
 
 def main():
     env_vars = dotenv_values(".env")
-    config = load_config("./config/config.yaml")
-
-    parser = argparse.ArgumentParser(
-        description="Time Series Forecasting with Hyperparameter Optimization"
-    )
-    parser.add_argument(
-        "--model_name", type=str, default=config["model_name"], help="Model name"
-    )
-    parser.add_argument(
-        "--hpo_config_version",
-        type=int,
-        default=config["hpo_config_version"],
-        help="HPO configuration version",
-    )
-    parser.add_argument(
-        "--forecast_horizon",
-        type=int,
-        default=config["forecast_horizon"],
-        help="Forecast horizon",
-    )
-    parser.add_argument(
-        "--random_state",
-        type=int,
-        default=config["random_state"],
-        help="Random state for reproducibility",
-    )
-    parser.add_argument(
-        "--n_trials",
-        type=int,
-        default=config["n_trials"],
-        help="Number of trials for Optuna",
-    )
-    parser.add_argument("--s3_bucket", type=str, default=None, help="S3 bucket name")
-    parser.add_argument(
-        "--s3_dirs",
-        type=str,
-        nargs="+",
-        default=["data/"],
-        help="S3 directories to download the data from",
-    )
-    parser.add_argument(
-        "--local_dirs",
-        type=str,
-        nargs="+",
-        default=["./data/"],
-        help="Local directories to save data downloaded from S3",
-    )
-
-    args = parser.parse_args()
+    environment = env_vars["ENVIRONMENT"]
+    if environment not in ["development", "staging", "production"]:
+        print("ENVIRONMENT variable not set. Exiting...")
+        sys.exit(1)
+    config = load_config(f"./config/{environment}/pipeline.yaml")
 
     setup_logging()
 
     device = "gpu" if GPUtil.getAvailable() else "cpu"
     print(f"device set to {device}")
 
-    if args.s3_bucket:
+    if config["s3_bucket"]:
         s3_client = boto3.client(
             "s3",
             aws_access_key_id=env_vars["AWS_ACCESS_KEY_ID"],
             aws_secret_access_key=env_vars["AWS_SECRET_ACCESS_KEY"],
         )
 
-        for s3_dir, local_dir in zip(args.s3_dirs, args.local_dirs):
-            download_s3_dir(s3_client, args.s3_bucket, s3_dir, local_dir)
+        for s3_dir, local_dir in zip(config["s3_dirs"], config["local_dirs"]):
+            download_s3_dir(s3_client, config["s3_bucket"], s3_dir, local_dir)
 
-    df_train = pd.read_csv("./data/processed/consumption_train_processed.csv")
+    df_train = pd.read_csv("./data/processed/consumption_train.csv")
     X_train = df_train.drop(columns="target")
     y_train = df_train["target"]
     print(f"X_train shape : {X_train.shape}")
     print(f"y_train shape : {y_train.shape}")
 
     config_file_path = Path(
-        "./config", f"{args.model_name}_hpo", f"config_{args.hpo_config_version}.yaml"
+        "./config",
+        environment,
+        f"{config['model_name']}_hpo",
+        f"config_{config['hpo_config_version']}.yaml",
     )
     print(f"using {config_file_path} for HPO")
     with open(config_file_path, "rb") as file:
@@ -149,7 +108,7 @@ def main():
     else:
         sampler_loaded = False
         print("no sampler saved for the study, creating a new one")
-        sampler = optuna.samplers.TPESampler(seed=args.random_state)
+        sampler = optuna.samplers.TPESampler(seed=config["random_state"])
 
     study = optuna.create_study(
         study_name=study_name,
@@ -169,7 +128,7 @@ def main():
             X_train,
             y_train,
             hpo_config,
-            args.random_state,
+            config["random_state"],
             device,
         ),
         n_trials=config["n_trials"],
