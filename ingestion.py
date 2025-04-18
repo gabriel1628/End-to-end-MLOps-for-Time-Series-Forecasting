@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import shutil
 from glob import glob
@@ -10,6 +11,21 @@ def ingestion_pipeline():
     """
     Pipeline to download, unzip, organize, and prepare data for further processing.
     """
+    try:
+        os.listdir("./data/raw")
+        print("The directory './data/raw/' is not empty. Skipping ingestion.")
+        sys.exit(0)
+    except FileNotFoundError:
+        print("Directory './data/raw/' does not exist. Creating it now.")
+        create_dir("./data")
+        create_dir("./data/raw")
+    except PermissionError:
+        print("Permission denied: Unable to access './data/raw/'.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        sys.exit(1)
+
     print("Ingesting the data...")
     try:
         subprocess.run(
@@ -56,17 +72,4 @@ def ingestion_pipeline():
 
 
 if __name__ == "__main__":
-    try:
-        if os.listdir("./data/raw"):
-            print("Data already saved in ./data/raw/")
-        else:
-            ingestion_pipeline()
-    except FileNotFoundError:
-        print("Directory './data/raw/' does not exist. Creating it now...")
-        create_dir("./data")
-        create_dir("./data/raw")
-        ingestion_pipeline()
-    except PermissionError:
-        print("Permission denied: Unable to access './data/raw/'.")
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    ingestion_pipeline()
