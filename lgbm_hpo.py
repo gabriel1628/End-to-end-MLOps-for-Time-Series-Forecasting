@@ -12,7 +12,7 @@ from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import mean_absolute_error
 import optuna
 from lightgbm import LGBMRegressor
-from utils import load_config, download_s3_dir
+from utils import load_config, download_s3_dir, load_data
 import yaml
 from dotenv import dotenv_values
 import warnings
@@ -49,15 +49,6 @@ def sync_s3(config, env_vars):
         download_s3_dir(s3_client, config["s3_bucket"], s3_dir, local_dir)
 
 
-def load_training_data():
-    df_train = pd.read_csv("./data/processed/consumption_train.csv")
-    X_train = df_train.drop(columns="target")
-    y_train = df_train["target"]
-    print(f"X_train shape : {X_train.shape}")
-    print(f"y_train shape : {y_train.shape}")
-    return X_train, y_train
-
-
 def load_hpo_config(environment, config):
     hpo_config_path = Path(
         "./config",
@@ -72,11 +63,12 @@ def load_hpo_config(environment, config):
 
 
 def get_study(config):
+    # TODO: track data versions
     study_name = f"datav1_{config['model_name']}_config{config['hpo_config_version']}"
-    study_path = f"./optuna_studies/{study_name}.db"
+    study_path = f"{config['studies_dir']}/{study_name}.db"
     storage_path = f"sqlite:///{study_path}"
     sampler_name = f"{study_name}_sampler.pkl"
-    sampler_path = f"./optuna_studies/{sampler_name}"
+    sampler_path = f"{config['studies_dir']}/{sampler_name}"
     if os.path.exists(sampler_path):
         print(f"loading sampler from {sampler_path}")
         with open(sampler_path, "rb") as f:
@@ -134,7 +126,7 @@ def main():
     print(f"device set to {device}")
     if config["s3_bucket"]:
         sync_s3(config, env_vars)
-    X_train, y_train = load_training_data()
+    X_train, y_train = load_data("./data/processed/consumption_train.csv")
     hpo_config = load_hpo_config(environment, config)
     study = get_study(config)
     study.optimize(
