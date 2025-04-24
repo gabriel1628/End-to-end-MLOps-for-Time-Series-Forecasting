@@ -18,9 +18,10 @@ random_state: 0
 n_splits: 5 # number of CV splits
 scoring: neg_mean_absolute_error # scoring for CV
 n_trials: 3
+studies_dir: ./optuna_studies
 # sync with S3
-s3_bucket: # enefit-competition
-s3_dirs:
+s3_bucket: # '%env:S3_BUCKET%'
+s3_dirs: # TODO: replace by only one 'data_dir' parameter
   - data/
 local_dirs:
   - ./data/
