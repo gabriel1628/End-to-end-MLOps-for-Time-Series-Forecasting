@@ -37,6 +37,16 @@ def create_dir(dir_path):
         print(f"An error occurred: {e}")
 
 
+def load_data(data_path):
+    df = pd.read_csv(data_path)
+    X = df.drop(columns="target")
+    y = df["target"]
+    print(f"X shape : {X.shape}")
+    print(f"y shape : {y.shape}")
+    return X, y
+
+
+# TODO: reomve 'local_dir' and keep only 's3_dir'
 def download_s3_dir(s3_client, bucket_name, s3_dir, local_dir):
     """function to download objects from an S3 bucket located in the s3_dir directory"""
     if not os.path.exists(local_dir):
