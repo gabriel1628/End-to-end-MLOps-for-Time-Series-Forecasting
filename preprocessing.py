@@ -4,21 +4,38 @@ import boto3
 import sys
 import os
 from utils import load_config, create_dir
+import argparse
+
+
+raw_data_path = "./data/raw/"
+if not os.path.exists(f"{raw_data_path}/train.csv"):
+    print("Data not found. Please run the ingestion script first.")
+    print("Exiting...")
+    sys.exit(1)
+preprocessed_path = f"./data/preprocessed/"
 
 
 def preprocessing_pipeline():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force-run",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the preprocessing pipeline even if preprocessed data already exists",
+    )
+    args = parser.parse_args()
+
+    if (
+        os.path.exists(f"{preprocessed_path}/consumption_train.csv")
+        and not args.force_run
+    ):
+        print("Preprocessed data already exists. Skipping preprocessing.")
+        sys.exit(0)
+
     config = load_config("./config/development/pipeline.yaml")
 
     print("Preprocessing the data...")
-    # Read data
-    if not os.path.exists("./data/raw/train.csv"):
-        print("Data not found. Please run the ingestion script first.")
-        print("Exiting...")
-        sys.exit(1)
-    if os.path.exists("./data/preprocessed/consumption_train.csv"):
-        print("Preprocessed data already exists. Skipping preprocessing.")
-        sys.exit(0)
-    data = pd.read_csv("./data/raw/train.csv")
+    data = pd.read_csv("./data/raw/train.csv", parse_dates=["datetime"])
     reordered_columns = pd.Index(["target"]).append(data.columns.drop("target"))
     data = data[reordered_columns]
 
@@ -27,16 +44,12 @@ def preprocessing_pipeline():
     data = data[~data["prediction_unit_id"].isin(discontinuous_series)]
 
     # Handle missing values
-    production = data.loc[
-        data["is_consumption"] == 0, ["target", "datetime", "prediction_unit_id"]
-    ]
-    consumption = data.loc[
-        data["is_consumption"] == 1, ["target", "datetime", "prediction_unit_id"]
-    ]
+    production = data.loc[data["is_consumption"] == 0]
+    consumption = data.loc[data["is_consumption"] == 1]
+    del data
     # Fill missing values
-    consumption.ffill(inplace=True)
-    production.ffill(inplace=True)
-
+    production["target"] = production["target"].ffill()
+    consumption["target"] = consumption["target"].ffill()
     # # Downcast data types
     # int_columns = list(data.dtypes[data.dtypes == np.int64].index)
     # float_columns = list(data.dtypes[data.dtypes == np.float64].index)
@@ -49,24 +62,26 @@ def preprocessing_pipeline():
     # Train-test split
     consumption = consumption.sort_values(by="datetime")
     consumption_train = consumption[
-        consumption["datetime"] <= config["splitting_datetime"]
+        consumption["datetime"] <= (config["splitting_datetime"])
     ]
     consumption_test = consumption[
-        consumption["datetime"] > config["splitting_datetime"]
+        consumption["datetime"] > (config["splitting_datetime"])
     ]
 
     production = production.sort_values(by="datetime")
     production_train = production[
-        production["datetime"] <= config["splitting_datetime"]
+        production["datetime"] <= (config["splitting_datetime"])
     ]
-    production_test = production[production["datetime"] > config["splitting_datetime"]]
+    production_test = production[
+        production["datetime"] > (config["splitting_datetime"])
+    ]
 
     # Save cleaned data
-    consumption_train.to_csv("./data/preprocessed/consumption_train.csv", index=False)
-    consumption_test.to_csv("./data/preprocessed/consumption_test.csv", index=False)
+    consumption_train.to_csv(f"{preprocessed_path}/consumption_train.csv", index=False)
+    consumption_test.to_csv(f"{preprocessed_path}/consumption_test.csv", index=False)
 
-    production_train.to_csv("./data/preprocessed/production_train.csv", index=False)
-    production_test.to_csv("./data/preprocessed/production_test.csv", index=False)
+    production_train.to_csv(f"{preprocessed_path}/production_train.csv", index=False)
+    production_test.to_csv(f"{preprocessed_path}/production_test.csv", index=False)
 
     # Optional: Upload data to AWS S3
     if config["s3_bucket"]:
@@ -78,7 +93,7 @@ def preprocessing_pipeline():
             "production_test.csv",
         ]
         for file in files:
-            local_path = f"./data/preprocessed/{file}"
+            local_path = f"{preprocessed_path}/{file}"
             s3_key = f"data/preprocessed/{file}"
             with open(local_path, "rb") as f:
                 s3_client.upload_fileobj(f, config["s3_bucket"], s3_key)
@@ -89,13 +104,10 @@ def preprocessing_pipeline():
 
 if __name__ == "__main__":
     try:
-        if os.listdir("./data/preprocessed"):
-            print("Data already preprocessed. Skipping preprocessing.")
-        else:
-            preprocessing_pipeline()
+        preprocessing_pipeline()
     except FileNotFoundError:
         print("Preprocessed data directory does not exist. Creating it now...")
-        create_dir("./data/preprocessed")
+        create_dir(f"{preprocessed_path}")
         preprocessing_pipeline()
     except Exception as e:
         print(f"Error during preprocessing: {e}")

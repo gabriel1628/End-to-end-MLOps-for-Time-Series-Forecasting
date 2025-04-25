@@ -2,10 +2,11 @@
 import pandas as pd
 from mlforecast import MLForecast
 from mlforecast.lag_transforms import ExpandingMean, RollingMean
-from utils import load_config
+from utils import load_config, create_dir
 import os
 import sys
 from pathlib import Path
+import argparse
 
 # Default config path
 default_config_path = "./config/development/pipeline.yaml"
@@ -27,6 +28,23 @@ def feature_engineering(
     static_features,
     on_test=False,
 ):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--force-run",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the feature engineering pipeline even if processed data already exists",
+    )
+    args = parser.parse_args()
+
+    if not os.path.exists(f"{preprocessed_path}/consumption_train.csv"):
+        print("Data not found. Please run the preprocessing script first.")
+        print("Exiting...")
+        sys.exit(1)
+    if os.path.exists(f"{processed_path}/consumption_train.csv") and not args.force_run:
+        print("Processed data already exists. Skipping feature engineering.")
+        sys.exit(0)
+
     lags = [i for i in range(forecast_horizon, forecast_horizon + n_lags)]
     lag_transforms = {
         i: [ExpandingMean(), RollingMean(window_size=rolling_mean_window_size)]
@@ -49,14 +67,7 @@ def feature_engineering(
     return df_transformed
 
 
-def main():
-    if not os.path.exists(f"{preprocessed_path}/consumption_train.csv"):
-        print("Data not found. Please run the preprocessing script first.")
-        print("Exiting...")
-        sys.exit(1)
-    if os.path.exists(f"{processed_path}/consumption_train.csv"):
-        print("Processed data already exists. Skipping feature engineering.")
-        sys.exit(0)
+def feature_engineering_pipeline():
 
     config = load_config(default_config_path)
 
@@ -93,4 +104,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        feature_engineering_pipeline()
+    except FileNotFoundError:
+        print("Processed data directory does not exist. Creating it now...")
+        create_dir(f"{processed_path}")
+        feature_engineering_pipeline()
+    except Exception as e:
+        print(f"Error during preprocessing: {e}")
