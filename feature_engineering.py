@@ -5,8 +5,6 @@ from mlforecast.lag_transforms import ExpandingMean, RollingMean
 from utils import load_config
 import os
 import sys
-import argparse
-import yaml
 from pathlib import Path
 
 # Default config path
@@ -52,11 +50,13 @@ def feature_engineering(
 
 
 def main():
-    # Read data
-    if not os.path.exists(preprocessed_path):
+    if not os.path.exists(f"{preprocessed_path}/consumption_train.csv"):
         print("Data not found. Please run the preprocessing script first.")
         print("Exiting...")
         sys.exit(1)
+    if os.path.exists(f"{processed_path}/consumption_train.csv"):
+        print("Processed data already exists. Skipping feature engineering.")
+        sys.exit(0)
 
     config = load_config(default_config_path)
 
