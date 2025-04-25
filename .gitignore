@@ -185,3 +185,6 @@ mlartifacts/
 
 # Temporary files
 tmp/
+
+# Miscellaneous
+misc/
