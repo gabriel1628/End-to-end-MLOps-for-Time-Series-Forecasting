@@ -16,6 +16,9 @@ def preprocessing_pipeline():
         print("Data not found. Please run the ingestion script first.")
         print("Exiting...")
         sys.exit(1)
+    if os.path.exists("./data/preprocessed/consumption_train.csv"):
+        print("Preprocessed data already exists. Skipping preprocessing.")
+        sys.exit(0)
     data = pd.read_csv("./data/raw/train.csv")
     reordered_columns = pd.Index(["target"]).append(data.columns.drop("target"))
     data = data[reordered_columns]
