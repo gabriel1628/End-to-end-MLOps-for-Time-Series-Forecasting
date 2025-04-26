@@ -10,7 +10,7 @@ import sys
 
 
 env_vars = dotenv_values("./.env")
-config = load_config("./config/development/pipeline.yaml")
+config = load_config("./config/development/config.yaml")
 
 X_train, y_train = load_data("./data/processed/consumption_train.csv")
 X_test, y_test = load_data("./data/processed/consumption_test.csv")

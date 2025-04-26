@@ -32,7 +32,7 @@ def preprocessing_pipeline():
         print("Preprocessed data already exists. Skipping preprocessing.")
         sys.exit(0)
 
-    config = load_config("./config/development/pipeline.yaml")
+    config = load_config("./config/development/config.yaml")
 
     print("Preprocessing the data...")
     data = pd.read_csv("./data/raw/train.csv", parse_dates=["datetime"])

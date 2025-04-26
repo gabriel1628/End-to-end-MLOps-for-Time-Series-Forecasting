@@ -110,7 +110,7 @@ def objective(trial, X_train, y_train, hpo_config, random_state, device):
 
 def main():
     environment, env_vars = get_environment()
-    config = load_config(f"./config/{environment}/pipeline.yaml")
+    config = load_config(f"./config/{environment}/config.yaml")
     setup_logging()
     device = "gpu" if GPUtil.getAvailable() else "cpu"
     print(f"device set to {device}")

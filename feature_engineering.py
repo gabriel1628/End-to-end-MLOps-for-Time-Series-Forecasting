@@ -9,7 +9,7 @@ from pathlib import Path
 import argparse
 
 # Default config path
-default_config_path = "./config/development/pipeline.yaml"
+default_config_path = "./config/development/config.yaml"
 preprocessed_path = "./data/preprocessed/"
 processed_path = "./data/processed/"
 
