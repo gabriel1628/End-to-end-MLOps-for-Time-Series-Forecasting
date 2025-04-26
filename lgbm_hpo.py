@@ -12,7 +12,7 @@ from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import mean_absolute_error
 import optuna
 from lightgbm import LGBMRegressor
-from utils import load_config, download_s3_dir, load_data
+from utils import load_config, load_data
 import yaml
 from dotenv import dotenv_values
 import warnings
@@ -37,16 +37,6 @@ def setup_logging():
     if logger.hasHandlers():
         logger.handlers.clear()
     logger.addHandler(logging.StreamHandler(sys.stdout))
-
-
-def sync_s3(config, env_vars):
-    s3_client = boto3.client(
-        "s3",
-        aws_access_key_id=env_vars["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=env_vars["AWS_SECRET_ACCESS_KEY"],
-    )
-    for s3_dir, local_dir in zip(config["s3_dirs"], config["local_dirs"]):
-        download_s3_dir(s3_client, config["s3_bucket"], s3_dir, local_dir)
 
 
 def load_hpo_config(environment, config):
@@ -124,8 +114,6 @@ def main():
     setup_logging()
     device = "gpu" if GPUtil.getAvailable() else "cpu"
     print(f"device set to {device}")
-    if config["s3_bucket"]:
-        sync_s3(config, env_vars)
     X_train, y_train = load_data("./data/processed/consumption_train.csv")
     hpo_config = load_hpo_config(environment, config)
     study = get_study(config)
