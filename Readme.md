@@ -93,5 +93,13 @@ The project leverages the following technologies:
    
    ```
    python main.py
-   -->
    ```
+   -->
+
+## References
+
+- https://www.kaggle.com/competitions/predict-energy-behavior-of-prosumers
+
+- https://deep-learning-blogs.vercel.app/blog/mlops-project-setup-part1
+
+- https://mlops-coding-course.fmind.dev/index.html
