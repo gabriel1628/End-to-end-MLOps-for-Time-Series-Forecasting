@@ -1,6 +1,7 @@
 from lightgbm import LGBMRegressor
 from sklearn.metrics import mean_absolute_error
 import mlflow
+from mlflow.models import infer_signature
 import time
 from datetime import datetime, timezone
 from utils import load_config
@@ -30,7 +31,7 @@ def train():
     X_train, y_train = load_data("./data/processed/consumption_train.csv")
     X_test, y_test = load_data("./data/processed/consumption_test.csv")
 
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
+    mlflow.set_tracking_uri(env_vars["MLFLOW_TRACKING_URI"])
     experiment_name = (
         f"Enefit DataV1 {config['model_name']} HpoConfigV{config['hpo_config_version']}"
     )
@@ -38,7 +39,9 @@ def train():
         mlflow.set_experiment(experiment_name=experiment_name)
     except mlflow.exceptions.MlflowException:
         print("MLflow server not running. Please start the server using this command:")
-        print("mlflow server --host 127.0.0.1 --port 5000")
+        print(
+            f"mlflow server --host {env_vars['MLFLOW_TRACKING_HOST']} --port {env_vars['MLFLOW_TRACKING_PORT']}"
+        )
         print("Exiting...")
         sys.exit(1)
 
@@ -55,25 +58,29 @@ def train():
         params = study.best_params
         run_name = f"TrialNumber{study.best_trial.number}-{utc_datetime}"
 
-    # training
-    model = LGBMRegressor(**params, random_state=config["random_state"])
-    start = time.time()
-    model.fit(X_train, y_train)
-    end = time.time()
-
-    # metrics
-    y_fit = model.predict(X_train)
-    y_pred = model.predict(X_test)
-    train_mae = mean_absolute_error(y_train, y_fit)
-    test_mae = mean_absolute_error(y_test, y_pred)
-    training_duration = end - start
-    metrics = {
-        "train_mae": train_mae,
-        "test_mae": test_mae,
-        "training_duration": training_duration,
-    }
-
     with mlflow.start_run(run_name=run_name) as run:
+        # training
+        model = LGBMRegressor(**params, random_state=config["random_state"])
+        start = time.time()
+        model.fit(X_train, y_train)
+        end = time.time()
+
+        # metrics
+        y_fit = model.predict(X_train)
+        y_pred = model.predict(X_test)
+        train_mae = mean_absolute_error(y_train, y_fit)
+        test_mae = mean_absolute_error(y_test, y_pred)
+        training_duration = end - start
+        metrics = {
+            "train_mae": train_mae,
+            "test_mae": test_mae,
+            "training_duration": training_duration,
+        }
+
+        # Infer the model signature
+        y_pred = model.predict(X_test)
+        signature = infer_signature(X_test, y_pred)
+
         # Log the parameters used for the model fit
         mlflow.log_params(params)
 
@@ -85,6 +92,8 @@ def train():
             lgb_model=model,
             input_example=X_train.iloc[:1],
             artifact_path=config["model_name"],
+            signature=signature,
+            # registered_model_name=config["model_name"],
         )
 
     print("Training completed successfully.")
