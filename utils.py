@@ -22,6 +22,12 @@ def load_config(config_path):
     return config
 
 
+def save_config(config, config_path):
+    with open(config_path, "w") as file:
+        yaml.dump(config, file, default_flow_style=False)
+    print(f"Configuration saved to {config_path}")
+
+
 def create_dir(dir_path):
     """
     Creates a directory if it doesn't already exist.
