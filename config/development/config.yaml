@@ -1,24 +1,29 @@
-# preprocessing
-splitting_datetime: 2023-01-26 05:00:00
-# feature engineering
-freq: H
-id_col: prediction_unit_id
-time_col: datetime
-target_col: target
+EXPERIMENT_ID: '255253755991586970'
+RUN_ID: 37cff3aa004b4ce39824c97d3f957fb5
+date_features:
+- month
+- dayofweek
+- hour
 forecast_horizon: 48
-n_lags: &n_lags 4
-rolling_mean_window_size: 4
-date_features: ["month", "dayofweek", "hour"]
-static_features: ["county", "is_business", "product_type", "is_consumption", "prediction_unit_id"]
-n_lag_transforms: *n_lags
-# HPO
-model_name: lightgbm
+freq: H
 hpo_config_version: 1
-random_state: 0
-n_splits: 5 # number of CV splits
-scoring: neg_mean_absolute_error # scoring for CV
+id_col: prediction_unit_id
+model_name: lightgbm
+n_lag_transforms: 4
+n_lags: 4
+n_splits: 5
 n_trials: 3
+random_state: 0
+rolling_mean_window_size: 4
+s3_bucket: null
+scoring: neg_mean_absolute_error
+splitting_datetime: 2023-01-26 05:00:00
+static_features:
+- county
+- is_business
+- product_type
+- is_consumption
+- prediction_unit_id
 studies_dir: ./optuna_studies
-# sync with S3
-s3_bucket: # '%env:S3_BUCKET%'
-# aws_access_key_id='%env:AWS_ACCESS_KEY_ID%'
+target_col: target
+time_col: datetime
