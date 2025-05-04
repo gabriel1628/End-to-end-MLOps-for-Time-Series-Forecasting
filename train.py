@@ -58,6 +58,8 @@ def train():
         params = study.best_params
         run_name = f"TrialNumber{study.best_trial.number}-{utc_datetime}"
 
+    # mlflow.autolog()
+
     with mlflow.start_run(run_name=run_name) as run:
         # training
         model = LGBMRegressor(**params, random_state=config["random_state"])
