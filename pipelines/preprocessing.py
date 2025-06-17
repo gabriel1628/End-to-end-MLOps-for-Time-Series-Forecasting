@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 import boto3
 import sys
 import os
@@ -12,7 +11,6 @@ if not os.path.exists(f"{raw_data_path}/train.csv"):
     print("Data not found. Please run the ingestion script first.")
     print("Exiting...")
     sys.exit(1)
-preprocessed_path = f"./data/preprocessed/"
 
 
 def preprocessing_pipeline():
@@ -24,6 +22,7 @@ def preprocessing_pipeline():
         help="Run the preprocessing pipeline even if preprocessed data already exists",
     )
     args = parser.parse_args()
+    preprocessed_path = f"./data/preprocessed/"
 
     if (
         os.path.exists(f"{preprocessed_path}/consumption_train.csv")
@@ -77,6 +76,9 @@ def preprocessing_pipeline():
     ]
 
     # Save cleaned data
+    create_dir(preprocessed_path)
+    print("Saving preprocessed data...")
+
     consumption_train.to_csv(f"{preprocessed_path}/consumption_train.csv", index=False)
     consumption_test.to_csv(f"{preprocessed_path}/consumption_test.csv", index=False)
 
@@ -103,11 +105,4 @@ def preprocessing_pipeline():
 
 
 if __name__ == "__main__":
-    try:
-        preprocessing_pipeline()
-    except FileNotFoundError:
-        print("Preprocessed data directory does not exist. Creating it now...")
-        create_dir(f"{preprocessed_path}")
-        preprocessing_pipeline()
-    except Exception as e:
-        print(f"Error during preprocessing: {e}")
+    preprocessing_pipeline()
