@@ -62,6 +62,37 @@ def get_environment():
     return environment, env_vars
 
 
+def get_optuna_study(config):
+    # TODO: track data versions
+    study_name = f"datav1_{config['model_name']}_config{config['hpo_config_version']}"
+    study_path = f"{config['studies_dir']}/{study_name}.db"
+    storage_path = f"sqlite:///{study_path}"
+    sampler_name = f"{study_name}_sampler.pkl"
+    sampler_path = f"{config['studies_dir']}/{sampler_name}"
+    if os.path.exists(sampler_path):
+        print(f"loading sampler from {sampler_path}")
+        with open(sampler_path, "rb") as f:
+            sampler = pickle.load(f)
+        sampler_loaded = True
+    else:
+        print("no sampler saved for the study, creating a new one")
+        sampler = optuna.samplers.TPESampler(seed=config["random_state"])
+        sampler_loaded = False
+
+    study = optuna.create_study(
+        study_name=study_name,
+        storage=storage_path,
+        load_if_exists=True,
+        directions=["minimize"],
+        sampler=sampler,
+    )
+    if not sampler_loaded:
+        print(f"saving sampler to {sampler_path}")
+        with open(sampler_path, "wb") as file:
+            pickle.dump(study.sampler, file)
+    return study
+
+
 # TODO: reomve 'local_dir' and keep only 's3_dir'
 def download_s3_dir(s3_client, bucket_name, s3_dir, local_dir):
     """function to download objects from an S3 bucket located in the s3_dir directory"""

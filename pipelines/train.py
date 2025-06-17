@@ -4,9 +4,8 @@ import mlflow
 from mlflow.models import infer_signature
 import time
 from datetime import datetime, timezone
-from utils import load_config
+from utils import load_config, load_data, get_optuna_study
 from dotenv import dotenv_values
-from lgbm_hpo import load_data, get_study
 import sys
 import argparse
 
@@ -54,7 +53,7 @@ def train():
         params = {}
         run_name = f"DefaultParameters-{utc_datetime}"
     else:
-        study = get_study(config)
+        study = get_optuna_study(config)
         params = study.best_params
         run_name = f"TrialNumber{study.best_trial.number}-{utc_datetime}"
 
