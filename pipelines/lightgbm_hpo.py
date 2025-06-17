@@ -12,24 +12,14 @@ from sklearn.model_selection import TimeSeriesSplit, cross_val_score
 from sklearn.metrics import mean_absolute_error
 import optuna
 from lightgbm import LGBMRegressor
-from utils import load_config, load_data
+from utils import load_config, load_data, get_environment
 import yaml
-from dotenv import dotenv_values
 import warnings
 import os
 import pickle
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-
-
-def get_environment():
-    env_vars = dotenv_values(".env")
-    environment = env_vars.get("ENVIRONMENT")
-    if environment not in ["development", "staging", "production"]:
-        print("ENVIRONMENT variable not set. Exiting...")
-        sys.exit(1)
-    return environment, env_vars
 
 
 def setup_logging():
@@ -41,12 +31,12 @@ def setup_logging():
 
 def load_hpo_config(environment, config):
     hpo_config_path = Path(
-        "./config",
+        "./configs",
         environment,
         f"{config['model_name']}_hpo",
         f"config_{config['hpo_config_version']}.yaml",
     )
-    print(f"using {hpo_config_path} for HPO")
+    print(f"using {hpo_config_path} for HPO configurations")
     with open(hpo_config_path, "rb") as file:
         hpo_config = yaml.safe_load(file)
     return hpo_config
@@ -108,9 +98,9 @@ def objective(trial, X_train, y_train, hpo_config, random_state, device):
     return cv_errors.mean()
 
 
-def main():
+def lightgbm_hpo():
     environment, env_vars = get_environment()
-    config = load_config(f"./config/{environment}/config.yaml")
+    config = load_config(f"./configs/{environment}/config.yaml")
     setup_logging()
     device = "gpu" if GPUtil.getAvailable() else "cpu"
     print(f"device set to {device}")
@@ -132,4 +122,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    lightgbm_hpo()
