@@ -19,6 +19,11 @@ def predict_get():
     return "<h1>Use POST method to make predictions!</h1>"
 
 
+@app.route("/ping", methods=["GET"])
+def ping():
+    return jsonify({"message": "pong"})
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "healthy"})
