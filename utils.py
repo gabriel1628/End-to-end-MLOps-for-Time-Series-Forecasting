@@ -1,6 +1,7 @@
 import pandas as pd
 import yaml
 import os
+from dotenv import dotenv_values
 
 
 class columnDropperTransformer:
@@ -50,6 +51,15 @@ def load_data(data_path):
     print(f"X shape : {X.shape}")
     print(f"y shape : {y.shape}")
     return X, y
+
+
+def get_environment():
+    env_vars = dotenv_values(".env")
+    environment = env_vars.get("ENVIRONMENT")
+    if environment not in ["development", "staging", "production"]:
+        print("ENVIRONMENT variable not set. Exiting...")
+        sys.exit(1)
+    return environment, env_vars
 
 
 # TODO: reomve 'local_dir' and keep only 's3_dir'
