@@ -1,0 +1,22 @@
+{
+    "run_id":"37cff3aa004b4ce39824c97d3f957fb5",
+    "experiment_id":"255253755991586970",
+    "status":"FINISHED",
+    "artifact_uri":"mlflow-artifacts:\/255253755991586970\/37cff3aa004b4ce39824c97d3f957fb5\/artifacts",
+    "start_time":1746340802945,
+    "end_time":1746340813082,
+    "metrics.train_mae":267.4502562879,
+    "metrics.test_mae":276.5142190107,
+    "metrics.training_duration":0.6518881321,
+    "params.num_trees":"8",
+    "params.feature_fraction":"0.3962723889353149",
+    "params.learning_rate":"0.09906308908786306",
+    "params.max_depth":"6",
+    "params.num_leaves":"24",
+    "tags.mlflow.user":"gabriel",
+    "tags.mlflow.source.name":"train.py",
+    "tags.mlflow.source.type":"LOCAL",
+    "tags.mlflow.source.git.commit":"66e2bf008efc5aa702f8830dd6245d59c076c6ee",
+    "tags.mlflow.runName":"TrialNumber35-20250504T064002UTC",
+    "tags.mlflow.log-model.history":"[{\"run_id\": \"37cff3aa004b4ce39824c97d3f957fb5\", \"artifact_path\": \"lightgbm\", \"utc_time_created\": \"2025-05-04 06:40:06.358640\", \"model_uuid\": \"299063be05104442958c94a968a5d1a4\", \"flavors\": {\"python_function\": {\"loader_module\": \"mlflow.lightgbm\", \"python_version\": \"3.10.11\", \"data\": \"model.pkl\", \"env\": {\"conda\": \"conda.yaml\", \"virtualenv\": \"python_env.yaml\"}}, \"lightgbm\": {\"lgb_version\": \"4.5.0\", \"data\": \"model.pkl\", \"model_class\": \"lightgbm.sklearn.LGBMRegressor\", \"code\": null}}}]"
+}
