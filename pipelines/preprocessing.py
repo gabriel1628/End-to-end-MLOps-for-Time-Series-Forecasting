@@ -47,6 +47,7 @@ def preprocessing_pipeline():
     consumption = data.loc[data["is_consumption"] == 1]
     del data
     # Fill missing values
+    # TODO: fill missing values in each series separately
     production["target"] = production["target"].ffill()
     consumption["target"] = consumption["target"].ffill()
     # # Downcast data types
