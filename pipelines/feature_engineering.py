@@ -9,7 +9,7 @@ from pathlib import Path
 import argparse
 
 # Default config path
-default_config_path = "./config/development/config.yaml"
+default_config_path = "./configs/development/config.yaml"
 preprocessed_path = "./data/preprocessed/"
 processed_path = "./data/processed/"
 
@@ -20,18 +20,17 @@ def feature_engineering(
     id_col,
     time_col,
     target_col,
-    forecast_horizon,
-    n_lags,
-    rolling_mean_window_size,
-    n_lag_transforms,
+    lags,
+    rolling_mean_window_sizes,
+    lag_transforms_index,
     date_features,
     static_features,
-    on_test=False,
+    on_test=False,  # TODO: if True, stack last rows of train on top of test data to keep all test data
 ):
-    lags = [i for i in range(forecast_horizon, forecast_horizon + n_lags)]
     lag_transforms = {
-        i: [ExpandingMean(), RollingMean(window_size=rolling_mean_window_size)]
-        for i in range(forecast_horizon, forecast_horizon + n_lag_transforms)
+        i: [ExpandingMean()]
+        + [RollingMean(window_size) for window_size in rolling_mean_window_sizes]
+        for i in lag_transforms_index
     }
     fcst = MLForecast(
         models=[],
@@ -88,13 +87,12 @@ def feature_engineering_pipeline():
             id_col=config["id_col"],
             time_col=config["time_col"],
             target_col=config["target_col"],
-            forecast_horizon=config["forecast_horizon"],
-            n_lags=config["n_lags"],
-            rolling_mean_window_size=config["rolling_mean_window_size"],
-            n_lag_transforms=config["n_lag_transforms"],
+            lags=config["lags"],
+            rolling_mean_window_sizes=config["rolling_mean_window_sizes"],
+            lag_transforms_index=config["lag_transforms_index"],
             date_features=config["date_features"],
             static_features=config["static_features"],
-            on_test=on_test,
+            on_test=False,
         )
         df_transformed.drop(columns=["datetime"], inplace=True)
         # Save the transformed DataFrame to the processed directory
